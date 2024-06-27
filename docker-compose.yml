@@ -35,8 +35,7 @@ services:
       context: .
       dockerfile: Dockerfile.nginx
     volumes:
-      - ./static:/app/static
-      - ./media:/app/media
+      - ./resume/static:/app/static
     ports:
       - "80:80"
     depends_on:
@@ -47,7 +46,6 @@ services:
 volumes:
   postgres_data:
   static_volume:
-  media_volume:
 
 networks:
   app-network:

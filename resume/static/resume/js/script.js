@@ -42,7 +42,6 @@ function addSection() {
     `;
 
     sectionsContainer.appendChild(newSection);
-    console.log('New section added'); // 调试信息
 }
 
 function handleSubmit(e) {
