@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if resume %}Edit{% else %}New{% endif %} Resume - Resume Advisor{% endblock %}
+
+{% block content %}
+<h2>{% if resume %}Edit{% else %}New{% endif %} Resume</h2>
+
+<form id="resume-form" method="POST">
+    {% csrf_token %}
+
+    <label for="resume-name">Resume Name:</label>
+    <input type="text" id="resume-name" name="name" value="{{ resume.name }}" required>
+
+    <div id="sections-container">
+        {% for section in sections %}
+        <div class="resume-section">
+            <label for="section-title-{{ forloop.counter0 }}">Section Title:</label>
+            <input type="text" id="section-title-{{ forloop.counter0 }}" class="section-title" name="section-title-{{ forloop.counter0 }}" value="{{ section.title }}" required>
+
+            <label for="section-content-{{ forloop.counter0 }}">Content:</label>
+            <textarea id="section-content-{{ forloop.counter0 }}" class="section-content" name="section-content-{{ forloop.counter0 }}" required>{{ section.content }}</textarea>
+
+            <label for="section-analysis-{{ forloop.counter0 }}">Analysis:</label>
+            <textarea id="section-analysis-{{ forloop.counter0 }}" class="section-analysis" name="section-analysis-{{ forloop.counter0 }}" required>{{ section.analysis }}</textarea>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="button" id="add-section">Add Section</button>
+    <button type="submit">Save Resume</button>
+
+    {% if resume %}
+    <button type="button" id="analyze-resume">Analyze Resume</button>
+    {% endif %}
+</form>
+{% endblock %}

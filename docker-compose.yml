@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  db:
+    image: ccr.ccs.tencentyun.com/addons/postgres:11
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=resume_advisor
+      - POSTGRES_USER=resume_user
+      - POSTGRES_PASSWORD=resume_password
+    networks:
+      - app-network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    volumes:
+      - .:/app
+    expose:
+      - 8000
+    environment:
+      - DJANGO_SETTINGS_MODULE=resume_advisor.settings
+      - DATABASE_URL=postgres://resume_user:resume_password@db:5432/resume_advisor
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  app-network:

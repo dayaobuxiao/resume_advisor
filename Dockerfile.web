@@ -1,0 +1,22 @@
+FROM ccr.ccs.tencentyun.com/wingwell/python3.8
+
+RUN apt-get update && apt-get install -y netcat
+RUN apt-get update && apt-get install -y dnsutils
+
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+COPY requirements.txt /app/
+RUN pip install -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --timeout 60 -i https://mirrors.cloud.tencent.com/pypi/simple/ -r requirements.txt || \
+    pip install --timeout 60 -i https://mirrors.cloud.tencent.com/pypi/simple/ -r requirements.txt
+
+COPY . /app/
+
+RUN python manage.py collectstatic --noinput
+
+COPY --chmod=755 entrypoint.sh /app/
+
+ENTRYPOINT ["/app/entrypoint.sh"]

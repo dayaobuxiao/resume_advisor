@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - Resume Advisor{% endblock %}
+
+{% block content %}
+<h2>Admin Dashboard - All Resumes</h2>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Resume Name</th>
+            <th>User</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for resume in resumes %}
+        <tr>
+            <td>{{ resume.name }}</td>
+            <td>{{ resume.user.username }}</td>
+            <td>{{ resume.updated_at|date:"F d, Y H:i" }}</td>
+            <td>
+                <a href="{% url 'resume_edit' resume.id %}" class="button">View</a>
+                <a href="{% url 'admin:resume_resume_change' resume.id %}" class="button">Edit in Admin</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No resumes have been created yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

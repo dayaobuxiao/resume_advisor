@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block title %}500 Server Error - Resume Advisor{% endblock %}
+
+{% block content %}
+<h2>500 - Server Error</h2>
+<p>Sorry, something went wrong on our end. Please try again later.</p>
+<a href="{% url 'home' %}" class="button">Go to Homepage</a>
+{% endblock %}

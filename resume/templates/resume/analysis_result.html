@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Analysis Result - Resume Advisor{% endblock %}
+
+{% block content %}
+<h2>Analysis Result for {{ resume.name }}</h2>
+
+<div class="analysis-result">
+    {% for section in sections %}
+    <div class="section-analysis">
+        <h3>{{ section.title }}</h3>
+        <p class="section-content">{{ section.content }}</p>
+        <div class="analysis">
+            <h4>Analysis:</h4>
+            <p>{{ section.analysis }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<a href="{% url 'resume_edit' resume.id %}" class="button">Back to Edit</a>
+{% endblock %}
