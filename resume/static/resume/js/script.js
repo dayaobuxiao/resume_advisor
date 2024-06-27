@@ -17,10 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function addSection() {
-    console.log('addSection function called'); // 调试信息
     const sectionsContainer = document.getElementById('sections-container');
-    console.log('Sections container:', sectionsContainer); // 调试信息
-
     if (!sectionsContainer) {
         console.error('Sections container not found');
         return;
@@ -78,8 +75,33 @@ function handleSubmit(e) {
 }
 
 function analyzeResume() {
-    // 实现分析简历的逻辑
-    console.log('Analyzing resume...');
+    const sections = document.querySelectorAll('.resume-section');
+    const csrfToken = getCookie('csrftoken');
+
+    sections.forEach((section, index) => {
+        const sectionContent = section.querySelector('.section-content').value;
+
+        fetch('/api/analyze_section', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                content: sectionContent
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const analysisTextarea = section.querySelector('.section-analysis');
+                analysisTextarea.value = data.analysis; // 更新分析结果
+            } else {
+                console.error('Analysis failed:', data.message);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
 }
 
 function getCookie(name) {

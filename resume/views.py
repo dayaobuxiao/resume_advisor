@@ -4,7 +4,18 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from .models import Resume, ResumeSection
 from django.http import JsonResponse
+import requests
 import json
+
+# LLM API 的 URL 和密钥
+API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+API_KEY = "your_key"
+
+ADVISOR_PROMPT = """
+You are an AI interviewer helper candidates to optimize their resumes.
+
+Analyze the content, and try your best to give them the ultimate optimization.
+"""
 
 def home(request):
     return render(request, 'resume/home.html')
@@ -63,15 +74,40 @@ def resume_edit(request, resume_id=None):
 
     return render(request, 'resume/resume_edit.html', {'resume': resume, 'sections': sections})
 
-@login_required
-def analyze_resume(request, resume_id):
-    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-    # Placeholder for AI analysis logic
-    for section in resume.sections.all():
-        section.analysis = f"AI analysis for {section.title}: This is a placeholder."
-        section.save()
-    return JsonResponse({'status': 'success'})
 
+# 假设的LLM API调用函数
+def call_llm_api(content):
+    # 这里是调用LLM API的逻辑
+    data = {
+        "model": "glm-4",
+        "messages": [
+            {"role": "system", "content": ADVISOR_PROMPT},
+            {"role": "user", "content": content}
+        ],
+        "max_tokens": 500,
+        "temperature": 0.7,
+    }
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+    # 发送请求到LLM
+    response = requests.post(API_URL, headers=headers, json=data)
+    result = response.json()["choices"][0]["message"]["content"].strip()
+    return result
+
+@login_required
+def analyze_section(request):
+    data = json.loads(request.body)
+    section_content = data.get('content', '')
+
+    # 调用LLM API进行分析
+    analysis_result = call_llm_api(section_content)
+
+    return JsonResponse({
+        'status': 'success',
+        'analysis': analysis_result
+    })
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_dashboard(request):
