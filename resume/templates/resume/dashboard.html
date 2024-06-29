@@ -5,17 +5,37 @@
 {% block content %}
 <h2>Welcome, {{ user.username }}!</h2>
 <h3>Your Resumes</h3>
-{% if resumes %}
-    <ul>
-    {% for resume in resumes %}
-        <li>
-            <a href="{% url 'resume_edit' resume.id %}">{{ resume.name }}</a>
-            - Last updated: {{ resume.updated_at|date:"F d, Y" }}
-        </li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>You haven't created any resumes yet.</p>
-{% endif %}
-<a href="{% url 'resume_new' %}" class="button">Create New Resume</a>
+
+<form id="bulk-delete-form" method="POST" action="{% url 'bulk_delete_resumes' %}">
+    {% csrf_token %}
+    {% if resumes %}
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="select-all"></th>
+                    <th>Resume Name</th>
+                    <th>Last Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for resume in resumes %}
+                <tr>
+                    <td><input type="checkbox" name="resume_ids" value="{{ resume.id }}"></td>
+                    <td>{{ resume.name }}</td>
+                    <td>{{ resume.updated_at|date:"F d, Y" }}</td>
+                    <td>
+                        <a href="{% url 'resume_edit' resume.id %}">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    <button type="submit" onclick="return confirm('Are you sure you want to delete selected resumes?')">Delete Selected</button>
+    {% else %}
+        <p>You haven't created any resumes yet.</p>
+    {% endif %}
+</form>
+
+<a href="{% url 'resume_new' %}">Create New Resume</a>
 {% endblock %}

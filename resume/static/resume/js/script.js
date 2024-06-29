@@ -1,14 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
     const resumeForm = document.getElementById('resume-form');
     const addSectionButton = document.getElementById('add-section');
+    const sectionsContainer = document.getElementById('sections-container');
     const analyzeResumeButton = document.getElementById('analyze-resume');
+    const selectAllCheckbox = document.getElementById('select-all');
 
     if (addSectionButton) {
         addSectionButton.addEventListener('click', addSection);
     }
 
+    if (sectionsContainer) {
+        sectionsContainer.addEventListener('click', deleteSection);
+    }
+
     if (analyzeResumeButton) {
         analyzeResumeButton.addEventListener('click', analyzeResume);
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', deleteResume);
     }
 
     if (resumeForm) {
@@ -41,6 +51,15 @@ function addSection() {
     sectionsContainer.appendChild(newSection);
 }
 
+function deleteSection(event) {
+    if (event.target.classList.contains('delete-section')) {
+        const sectionToDelete = event.target.closest('.resume-section');
+        if (sectionToDelete) {
+            sectionToDelete.remove();
+        }
+    }
+}
+
 function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(this);
@@ -69,9 +88,27 @@ function handleSubmit(e) {
     .then(data => {
         if (data.status === 'success') {
             window.location.href = '/dashboard/';
+        } else {
+            const nameError = document.getElementById('name-error');
+            if (nameError) {
+                nameError.textContent = data.message;
+                nameError.style.display = 'block';
+            } else {
+                console.error('Error element not found:', data.message);
+                alert(data.message);
+            }
         }
     })
-    .catch(error => console.error('Error:', error));
+    .catch(error => {
+        console.error('Error:', error);
+        const nameError = document.getElementById('name-error');
+        if (nameError) {
+            nameError.textContent = 'An error occurred while saving the resume.';
+            nameError.style.display = 'block';
+        } else {
+            alert('An error occurred while saving the resume.');
+        }
+    });
 }
 
 function analyzeResume() {
@@ -102,6 +139,11 @@ function analyzeResume() {
         })
         .catch(error => console.error('Error:', error));
     });
+}
+
+function deleteResume() {
+    const checkboxes = document.querySelectorAll('input[name="resume_ids"]');
+    checkboxes.forEach(checkbox => checkbox.checked = this.checked);
 }
 
 function getCookie(name) {

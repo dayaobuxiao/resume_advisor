@@ -2,14 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.contrib import messages
 from .models import Resume, ResumeSection
 from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 import requests
 import json
 
 # LLM API 的 URL 和密钥
 API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
-API_KEY = "your_key"
+API_KEY = "fa8169ddcea10641598540bf387bfc78.8L9Nr96gFTaR84ZQ"
 
 ADVISOR_PROMPT = """
 You are an AI interviewer helper candidates to optimize their resumes.
@@ -53,11 +55,16 @@ def resume_edit(request, resume_id=None):
                 data = json.loads(request.body)
             else:
                 data = request.POST
+
+            new_name = data['name']
+            if Resume.objects.filter(user=request.user, name=new_name).exclude(id=resume_id).exists():
+                return JsonResponse({'status': 'error', 'message': 'A resume with this name already exists.'}, status=400)
+
             if resume:
-                resume.name = data['name']
+                resume.name = new_name
                 resume.save()
             else:
-                resume = Resume.objects.create(user=request.user, name=data['name'])
+                resume = Resume.objects.create(user=request.user, name=new_name)
 
             ResumeSection.objects.filter(resume=resume).delete()
             for section_data in data['sections']:
@@ -113,3 +120,11 @@ def analyze_section(request):
 def admin_dashboard(request):
     resumes = Resume.objects.all()
     return render(request, 'resume/admin_dashboard.html', {'resumes': resumes})
+
+@login_required
+@require_POST
+def bulk_delete_resumes(request):
+    resume_ids = request.POST.getlist('resume_ids')
+    Resume.objects.filter(id__in=resume_ids, user=request.user).delete()
+    messages.success(request, f"{len(resume_ids)} resume(s) deleted successfully.")
+    return redirect('dashboard')

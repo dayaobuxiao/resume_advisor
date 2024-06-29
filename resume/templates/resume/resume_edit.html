@@ -8,8 +8,9 @@
 <form id="resume-form" method="POST">
     {% csrf_token %}
 
+    <div id="nameError" style="color: red;"></div>
     <label for="resume-name">Resume Name:</label>
-    <input type="text" id="resume-name" name="name" value="{{ resume.name }}" required>
+    <input type="text" id="resume-name" name="name" value="{{ resume.name|default:'' }}" required>
 
     <div id="sections-container">
         {% for section in sections %}
@@ -22,6 +23,7 @@
 
             <label for="section-analysis-{{ forloop.counter0 }}">Analysis:</label>
             <textarea id="section-analysis-{{ forloop.counter0 }}" class="section-analysis" name="section-analysis-{{ forloop.counter0 }}" required>{{ section.analysis }}</textarea>
+            <button type="button" class="delete-section" data-section-id="{{ forloop.counter0 }}">Delete Section</button>
         </div>
         {% endfor %}
     </div>
