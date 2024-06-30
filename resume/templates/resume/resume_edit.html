@@ -5,6 +5,9 @@
 {% block content %}
 <h2>{% if resume %}Edit{% else %}New{% endif %} Resume</h2>
 
+<!-- back to board -->
+<a href="{% url 'dashboard' %}" class="back-button">Back to Dashboard</a>
+
 <form id="resume-form" method="POST">
     {% csrf_token %}
 
@@ -35,4 +38,5 @@
     <button type="button" id="analyze-resume">Analyze Resume</button>
     {% endif %}
 </form>
+
 {% endblock %}

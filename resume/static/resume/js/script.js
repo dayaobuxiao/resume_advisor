@@ -46,6 +46,7 @@ function addSection() {
 
         <label for="section-analysis-${sectionCount}">Analysis:</label>
         <textarea id="section-analysis-${sectionCount}" class="section-analysis" name="section-analysis-${sectionCount}" required></textarea>
+        <button type="button" class="delete-section">Delete Section</button>
     `;
 
     sectionsContainer.appendChild(newSection);
