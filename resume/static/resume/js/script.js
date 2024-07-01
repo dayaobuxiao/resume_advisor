@@ -45,7 +45,7 @@ function addSection() {
         <textarea id="section-content-${sectionCount}" class="section-content" name="section-content-${sectionCount}" required></textarea>
 
         <label for="section-analysis-${sectionCount}">Analysis:</label>
-        <div id="section-analysis-${sectionCount}" class="section-analysis" name="section-analysis-${sectionCount}" contenteditable="false"></div>
+        <div id="section-analysis-${sectionCount}" class="section-analysis" readonly></div>
         <button type="button" class="delete-section">Delete Section</button>
     `;
 
@@ -72,7 +72,7 @@ function handleSubmit(e) {
         jsonData.sections.push({
             title: section.querySelector('.section-title').value,
             content: section.querySelector('.section-content').value,
-            analysis: section.querySelector('.section-analysis').value,
+            analysis: section.querySelector('.section-analysis').innerHTML,
             order: index
         });
     });
@@ -114,56 +114,45 @@ function handleSubmit(e) {
 
 function analyzeResume() {
     const sections = document.querySelectorAll('.resume-section');
-    const csrfToken = getCookie('csrftoken');
 
     sections.forEach((section, index) => {
         const contentTextarea  = section.querySelector('.section-content');
         const content = contentTextarea.value
 
         const analysisDiv  = section.querySelector('.section-analysis');
+        const analysisInput = section.querySelector(`input[name="section-analysis-${index}"]`);
         analysisDiv.textContent  = 'Analyzing...';
 
-        fetch('/api/analyze_section/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({ content: content })
-        })
-        .then(response => {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
+        const eventSource = new EventSource(`/api/analyze_section/?content=${encodeURIComponent(content)}`);
 
-            function readStream() {
-                return reader.read().then(({ done, value }) => {
-                    if (done) {
-                        return;
-                    }
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop();
+        let fullResponse = '';
+        analysisDiv.textContent = '';
 
-                    lines.forEach(line => {
-                        if (line.startsWith('data: ')) {
-                            const chunk = line.slice(6);
-                            analysisDiv.textContent += chunk;
-                        }
-                    });
-
-                    return readStream();
-                });
+        eventSource.onmessage = function(event) {
+            if (event.data === '[DONE]') {
+                console.log('Analysis completed');
+                eventSource.close();
+            } else {
+                fullResponse += event.data;
+                typeWriter(analysisDiv, fullResponse);
+                analysisInput.value = fullResponse;
             }
+        };
 
-            analysisDiv.textContent = '';
-            return readStream();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            analysisDiv.textContent = 'Error occurred during analysis.';
-        });
+        eventSource.onerror = function(error) {
+            console.error('EventSource failed:', error);
+            analysisDiv.textContent = 'Error occurred during analysis. Please try again.';
+            analysisInput.value = '';
+            eventSource.close();
+        };
     });
+}
+
+function typeWriter(element, text, index = 0, speed = 1) {
+    if (index < text.length) {
+        element.textContent = text.substring(0, index + 1);
+        setTimeout(() => typeWriter(element, text, index + 1, speed), speed);
+    }
 }
 
 function deleteResume() {

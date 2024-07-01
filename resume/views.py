@@ -5,10 +5,10 @@ from django.contrib.auth import login
 from django.contrib import messages
 from .models import Resume, ResumeSection
 from django.http import JsonResponse, StreamingHttpResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 import requests
 import json
-import sseclient
+import logging
 
 # LLM API 的 URL 和密钥
 API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
@@ -82,13 +82,15 @@ def resume_edit(request, resume_id=None):
 
     return render(request, 'resume/resume_edit.html', {'resume': resume, 'sections': sections})
 
-@login_required
-def analyze_section(request):
-    data = json.loads(request.body)
-    section_content = data.get('content', '')
-    if not section_content:
-        return StreamingHttpResponse("data: Error: Empty section content\n\n", content_type='text/event-stream')
+logger = logging.getLogger(__name__)
 
+@login_required
+@require_GET
+def analyze_section(request):
+    section_content = request.GET.get('content', '')
+    if not section_content:
+        logger.error("Empty section content received")
+        return StreamingHttpResponse("data: Error: Empty section content\n\n", content_type='text/event-stream')
     def event_stream():
         headers = {
             "Authorization": f"Bearer {API_KEY}",
@@ -104,27 +106,31 @@ def analyze_section(request):
         }
 
         try:
-            response = requests.post(API_URL, headers=headers, json=data_to_llm, stream=True)
-            response.raise_for_status()  # 抛出 HTTPError 如果状态码不是 200
-            if 'text/event-stream' not in response.headers.get('Content-Type', ''):
-                yield f"data: Error: Unexpected content type {response.headers.get('Content-Type')}\n\n"
-                return
+            with requests.post(API_URL, headers=headers, json=data_to_llm, stream=True) as response:
+                logger.info(f"API response status code: {response.status_code}")
+                if response.status_code != 200:
+                    logger.error(f"Unexpected status code: {response.status_code}")
+                    yield f"data: Error: Unexpected status code {response.status_code}\n\n"
+                    return
 
-            for line in response.iter_lines():
-                if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
-                        if line.strip() == 'data: [DONE]':
-                            break
-                        try:
-                            json_data = json.loads(line[6:])
-                            content = json_data['choices'][0]['delta'].get('content', '')
-                            if content:
-                                yield f"data: {content}\n\n"
-                        except json.JSONDecodeError:
-                            yield f"data: Error parsing JSON: {line}\n\n"
-                        except KeyError:
-                            yield f"data: Error accessing data: {line}\n\n"
+                for line in response.iter_lines():
+                    if line:
+                        line = line.decode('utf-8')
+                        if line.startswith('data:'):
+                            if line.strip() == 'data: [DONE]':
+                                break
+                            try:
+                                data = json.loads(line[6:])
+                                if 'choices' in data and len(data['choices']) > 0:
+                                    content = data['choices'][0]['delta'].get('content', '')
+                                    if content:
+                                        yield f"data: {content}\n\n"
+                            except json.JSONDecodeError:
+                                logger.error(f"Failed to parse JSON: {line}")
+                                yield f"data: Error parsing JSON: {line}\n\n"
+                            except KeyError:
+                                yield f"data: Error accessing data: {line}\n\n"
+
         except requests.RequestException as e:
             yield f"data: Request Error: {str(e)}\n\n"
         except Exception as e:
