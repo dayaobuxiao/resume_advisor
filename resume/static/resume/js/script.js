@@ -45,7 +45,7 @@ function addSection() {
         <textarea id="section-content-${sectionCount}" class="section-content" name="section-content-${sectionCount}" required></textarea>
 
         <label for="section-analysis-${sectionCount}">Analysis:</label>
-        <textarea id="section-analysis-${sectionCount}" class="section-analysis" name="section-analysis-${sectionCount}" required></textarea>
+        <div id="section-analysis-${sectionCount}" class="section-analysis" name="section-analysis-${sectionCount}" contenteditable="false"></div>
         <button type="button" class="delete-section">Delete Section</button>
     `;
 
@@ -117,28 +117,52 @@ function analyzeResume() {
     const csrfToken = getCookie('csrftoken');
 
     sections.forEach((section, index) => {
-        const sectionContent = section.querySelector('.section-content').value;
+        const contentTextarea  = section.querySelector('.section-content');
+        const content = contentTextarea.value
 
-        fetch('/api/analyze_section', {
+        const analysisDiv  = section.querySelector('.section-analysis');
+        analysisDiv.textContent  = 'Analyzing...';
+
+        fetch('/api/analyze_section/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({
-                content: sectionContent
-            })
+            body: JSON.stringify({ content: content })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                const analysisTextarea = section.querySelector('.section-analysis');
-                analysisTextarea.value = data.analysis; // 更新分析结果
-            } else {
-                console.error('Analysis failed:', data.message);
+        .then(response => {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            function readStream() {
+                return reader.read().then(({ done, value }) => {
+                    if (done) {
+                        return;
+                    }
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    lines.forEach(line => {
+                        if (line.startsWith('data: ')) {
+                            const chunk = line.slice(6);
+                            analysisDiv.textContent += chunk;
+                        }
+                    });
+
+                    return readStream();
+                });
             }
+
+            analysisDiv.textContent = '';
+            return readStream();
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            analysisDiv.textContent = 'Error occurred during analysis.';
+        });
     });
 }
 

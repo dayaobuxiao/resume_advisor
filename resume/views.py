@@ -4,10 +4,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib import messages
 from .models import Resume, ResumeSection
-from django.http import JsonResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_POST
 import requests
 import json
+import sseclient
 
 # LLM API 的 URL 和密钥
 API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
@@ -81,40 +82,55 @@ def resume_edit(request, resume_id=None):
 
     return render(request, 'resume/resume_edit.html', {'resume': resume, 'sections': sections})
 
-
-# 假设的LLM API调用函数
-def call_llm_api(content):
-    # 这里是调用LLM API的逻辑
-    data = {
-        "model": "glm-4",
-        "messages": [
-            {"role": "system", "content": ADVISOR_PROMPT},
-            {"role": "user", "content": content}
-        ],
-        "max_tokens": 500,
-        "temperature": 0.7,
-    }
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-    }
-    # 发送请求到LLM
-    response = requests.post(API_URL, headers=headers, json=data)
-    result = response.json()["choices"][0]["message"]["content"].strip()
-    return result
-
 @login_required
 def analyze_section(request):
     data = json.loads(request.body)
     section_content = data.get('content', '')
+    if not section_content:
+        return StreamingHttpResponse("data: Error: Empty section content\n\n", content_type='text/event-stream')
 
-    # 调用LLM API进行分析
-    analysis_result = call_llm_api(section_content)
+    def event_stream():
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json",
+        }
+        data_to_llm = {
+            "model": "glm-4",
+            "messages": [
+                {"role": "system", "content": ADVISOR_PROMPT},
+                {"role": "user", "content": section_content}
+            ],
+            "stream": True,
+        }
 
-    return JsonResponse({
-        'status': 'success',
-        'analysis': analysis_result
-    })
+        try:
+            response = requests.post(API_URL, headers=headers, json=data_to_llm, stream=True)
+            response.raise_for_status()  # 抛出 HTTPError 如果状态码不是 200
+            if 'text/event-stream' not in response.headers.get('Content-Type', ''):
+                yield f"data: Error: Unexpected content type {response.headers.get('Content-Type')}\n\n"
+                return
+
+            for line in response.iter_lines():
+                if line:
+                    line = line.decode('utf-8')
+                    if line.startswith('data: '):
+                        if line.strip() == 'data: [DONE]':
+                            break
+                        try:
+                            json_data = json.loads(line[6:])
+                            content = json_data['choices'][0]['delta'].get('content', '')
+                            if content:
+                                yield f"data: {content}\n\n"
+                        except json.JSONDecodeError:
+                            yield f"data: Error parsing JSON: {line}\n\n"
+                        except KeyError:
+                            yield f"data: Error accessing data: {line}\n\n"
+        except requests.RequestException as e:
+            yield f"data: Request Error: {str(e)}\n\n"
+        except Exception as e:
+            yield f"data: Unexpected Error: {str(e)}\n\n"
+
+    return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
 
 @user_passes_test(lambda u: u.is_staff)
 def admin_dashboard(request):

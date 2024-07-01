@@ -197,3 +197,19 @@ header nav {
     border-color: #e8491d;
     outline: none;
 }
+
+.section-analysis {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.section-analysis:focus {
+    outline: none;
+}

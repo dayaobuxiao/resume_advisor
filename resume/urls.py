@@ -10,7 +10,7 @@ urlpatterns = [
     path('dashboard/', views.dashboard, name='dashboard'),
     path('resume/new/', views.resume_edit, name='resume_new'),
     path('resume/<int:resume_id>/edit/', views.resume_edit, name='resume_edit'),
-    path('api/analyze_section', views.analyze_section, name='analyze-section'),
+    path('api/analyze_section/', views.analyze_section, name='analyze-section'),
     path('admin_dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('bulk-delete-resumes/', views.bulk_delete_resumes, name='bulk_delete_resumes'),
 ]
