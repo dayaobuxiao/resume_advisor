@@ -45,7 +45,7 @@ function addSection() {
         <textarea id="section-content-${sectionCount}" class="section-content" name="section-content-${sectionCount}" required></textarea>
 
         <label for="section-analysis-${sectionCount}">Analysis:</label>
-        <div id="section-analysis-${sectionCount}" class="section-analysis" readonly></div>
+        <div id="section-analysis-${sectionCount}" class="section-analysis" name="section-analysis-${sectionCount}" readonly></div>
         <button type="button" class="delete-section">Delete Section</button>
     `;
 

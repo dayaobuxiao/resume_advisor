@@ -25,7 +25,7 @@
             <textarea id="section-content-{{ forloop.counter0 }}" class="section-content" name="section-content-{{ forloop.counter0 }}" required>{{ section.content }}</textarea>
 
             <label for="section-analysis-{{ forloop.counter0 }}">Analysis:</label>
-            <div id="section-analysis-{{ forloop.counter0 }}" class="section-analysis" readonly>{{ section.analysis }}</div>
+            <div id="section-analysis-{{ forloop.counter0 }}" class="section-analysis" name="section-analysis-{{ forloop.counter0 }}" readonly>{{ section.analysis }}</div>
             <input type="hidden" id="section-analysis-input-{{ forloop.counter0 }}" name="section-analysis-{{ forloop.counter0 }}" value="{{ section.analysis }}">
             <button type="button" class="delete-section" data-section-id="{{ forloop.counter0 }}">Delete Section</button>
         </div>
